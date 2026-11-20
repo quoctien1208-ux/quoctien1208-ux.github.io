@@ -129,6 +129,10 @@ main{padding-block:24px 64px}
 .guide ol,.guide ul{margin:0;padding-left:20px;display:grid;gap:6px}
 .guide .panel>p{margin-top:10px}
 .guide s{text-decoration-color:var(--bad);text-decoration-thickness:1.5px}
+.btn.danger{color:var(--bad)}
+.btn.danger:hover{border-color:var(--bad)}
+.btn.danger-solid{background:var(--bad);border-color:var(--bad);color:#fff}
+.confirm{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--bad-soft);display:grid;gap:10px}
 .tbl{overflow-x:auto}
 .tbl table{width:100%;border-collapse:collapse;font-size:.92rem}
 .tbl th,.tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -301,6 +305,21 @@ textarea{width:100%;resize:vertical;min-height:70px}
             <li>Điểm chấm theo mức giống câu mẫu, không chấm giọng. Hãy bắt chước cả ngữ điệu.</li>
           </ul>
         </div>
+      </div>
+      <div class="panel" id="data-panel">
+        <h3>Dữ liệu học tập</h3>
+        <p class="muted" id="data-sum"></p>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="bk-save">Sao lưu tiến độ</button>
+          <button class="btn" id="bk-load">Khôi phục từ file</button>
+          <input type="file" id="bk-file" accept=".json,application/json" hidden>
+          <button class="btn danger" id="bk-reset">Xóa tiến độ</button>
+        </div>
+        <div class="confirm" id="bk-confirm" hidden>
+          <p id="bk-confirm-msg"></p>
+          <div class="row"><button class="btn danger-solid" id="bk-yes">Đồng ý</button><button class="btn" id="bk-no">Hủy</button></div>
+        </div>
+        <p class="muted" style="margin-top:12px;font-size:.88rem">Sao lưu tải về một file .json. Muốn chuyển tiến độ sang thiết bị khác (ví dụ từ máy tính sang điện thoại), gửi file đó sang rồi bấm <b>Khôi phục từ file</b> trên thiết bị mới.</p>
       </div>
     </section>
   </div>
@@ -805,8 +824,51 @@ function grade(ok){
 }
 
 /* ---------------- ROUTER & EVENTS ---------------- */
+/* ---------------- DỮ LIỆU: sao lưu / khôi phục / xóa ---------------- */
+let pendingConfirm=null;
+function summary(d){
+  const weeks=Object.values(d.weeks||{}).filter(Boolean).length,cards=Object.keys(d.cards||{}).length,days=(d.days||[]).length;
+  return `${weeks}/24 tuần đã hoàn thành · ${cards} câu đang ôn · ${days} ngày đã học`;
+}
+function renderGuide(){$("#data-sum").textContent="Hiện có: "+summary(S)+".";hideConfirm()}
+function askConfirm(msg,yesLabel,fn){pendingConfirm=fn;$("#bk-confirm-msg").textContent=msg;$("#bk-yes").textContent=yesLabel;$("#bk-confirm").hidden=false;$("#bk-no").focus()}
+function hideConfirm(){pendingConfirm=null;$("#bk-confirm").hidden=true}
+function backup(){
+  const blob=new Blob([JSON.stringify({app:"native-talk-coach",version:1,exported:new Date().toISOString(),data:S},null,1)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`native-talk-sao-luu-${today()}.json`;
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  toast("Đã tạo file sao lưu. Xem trong thư mục Tải xuống (Downloads).",5000);
+}
+function applyData(d){
+  S={weeks:d.weeks||{},cards:d.cards||{},best:d.best||{},days:Array.isArray(d.days)?d.days:[]};
+  save();rv={id:null,shown:false,doneToday:0};renderStats();renderGuide();
+}
+function restoreFile(file){
+  const fr=new FileReader();
+  fr.onload=()=>{
+    let obj;try{obj=JSON.parse(fr.result)}catch(e){toast("File không đọc được. Hãy chọn đúng file .json đã sao lưu từ ứng dụng này.",6000);return}
+    const d=obj&&obj.app==="native-talk-coach"&&obj.data;
+    if(!d||typeof d!=="object"||typeof d.cards!=="object"){toast("Đây không phải file sao lưu của Native Talk Coach.",6000);return}
+    const when=obj.exported?new Date(obj.exported).toLocaleDateString("vi-VN"):"không rõ ngày";
+    askConfirm(`Thay tiến độ hiện tại bằng bản sao lưu ngày ${when} (${summary(d)})? Tiến độ hiện tại sẽ bị ghi đè.`,"Khôi phục",()=>{applyData(d);toast("Đã khôi phục tiến độ.")});
+  };
+  fr.onerror=()=>toast("Không đọc được file. Thử chọn lại.");
+  fr.readAsText(file);
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  switch(b.id){
+    case "bk-save":backup();break;
+    case "bk-load":$("#bk-file").click();break;
+    case "bk-reset":askConfirm("Xóa toàn bộ tiến độ trên thiết bị này: tuần đã tích, thẻ ôn tập, điểm shadowing và chuỗi ngày học? Không thể hoàn tác. Nên bấm Sao lưu trước.","Xóa hẳn",()=>{applyData({});toast("Đã xóa tiến độ. Bắt đầu lại từ đầu!")});break;
+    case "bk-yes":{const fn=pendingConfirm;hideConfirm();if(fn)fn();break}
+    case "bk-no":hideConfirm();break;
+  }
+});
+document.addEventListener("change",e=>{if(e.target.id==="bk-file"){const f=e.target.files&&e.target.files[0];if(f)restoreFile(f);e.target.value=""}});
+
 const VIEWS=["roadmap","lessons","shadow","talk","review","guide"];
-const RENDER={roadmap:renderRoadmap,lessons:renderLessons,shadow:renderShadow,talk:renderTalk,review:renderReview,guide:()=>{}};
+const RENDER={roadmap:renderRoadmap,lessons:renderLessons,shadow:renderShadow,talk:renderTalk,review:renderReview,guide:renderGuide};
 let curView="roadmap";
 function show(v){
   if(!VIEWS.includes(v))v="roadmap";curView=v;
