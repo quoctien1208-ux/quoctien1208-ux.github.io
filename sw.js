@@ -1,6 +1,6 @@
 // Service worker: cho phép mở ứng dụng khi không có mạng.
 // Trang chính lấy bản mới từ mạng trước (để luôn cập nhật), mất mạng thì dùng bản đã lưu.
-const CACHE = "ntc-v1";
+const CACHE = "ntc-v2";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -24,7 +24,8 @@ self.addEventListener("fetch", e => {
   }
   if (url.origin !== location.origin) return;
   // File của ứng dụng: lấy từ mạng trước, mất mạng thì dùng bản đã lưu
-  e.respondWith(fetch(req).then(r => {
+  // cache: "no-cache" = luôn hỏi máy chủ xem có bản mới không (không dùng bản trình duyệt giữ tạm)
+  e.respondWith(fetch(req, { cache: "no-cache" }).then(r => {
     if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
     return r;
   }).catch(() => caches.match(req).then(hit => hit || caches.match("./index.html"))));

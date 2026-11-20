@@ -68,6 +68,19 @@ mark{background:linear-gradient(transparent 12%,var(--sub) 12%,var(--sub) 88%,tr
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
 .tab svg{width:18px;height:18px}
 main{padding-block:24px 64px}
+.tab .ts{display:none}
+/* Điện thoại: thanh menu nằm dưới đáy màn hình, luôn thấy đủ 6 tab */
+@media (max-width:640px){
+  .tabs{position:fixed;top:auto;bottom:0;left:0;right:0;z-index:15;border-bottom:0;border-top:1px solid var(--line);background:var(--surface);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .tabs .wrap{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0;overflow:visible;padding-left:max(4px,env(safe-area-inset-left,0px));padding-right:max(4px,env(safe-area-inset-right,0px))}
+  .tab{flex-direction:column;justify-content:center;gap:3px;min-width:0;padding:8px 2px 7px;font-size:.66rem;line-height:1.15;text-align:center;border-bottom:0;border-top:3px solid transparent}
+  .tab[aria-selected="true"]{color:var(--accent);border-top-color:var(--accent)}
+  .tab svg{width:22px;height:22px}
+  .tab .tl{display:none}
+  .tab .ts{display:inline}
+  .top{padding-block:14px 6px}
+  main{padding-block:16px calc(88px + env(safe-area-inset-bottom,0px))}
+}
 .view{display:grid;gap:24px}
 .intro{max-width:68ch;color:var(--muted)}
 
@@ -133,6 +146,13 @@ main{padding-block:24px 64px}
 .btn.danger:hover{border-color:var(--bad)}
 .btn.danger-solid{background:var(--bad);border-color:var(--bad);color:#fff}
 .confirm{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--bad-soft);display:grid;gap:10px}
+.ai-list{display:grid;gap:10px}
+.ai-item{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px}
+.ai-item>div{display:grid;gap:2px}
+.ai-item details{grid-column:1/-1}
+.ai-item summary{cursor:pointer;color:var(--accent);font-size:.88rem}
+.ai-item textarea{margin-top:8px;font-family:var(--f-mono);font-size:.78rem;line-height:1.5}
+a.btn{text-decoration:none;color:inherit}
 .tbl{overflow-x:auto}
 .tbl table{width:100%;border-collapse:collapse;font-size:.92rem}
 .tbl th,.tbl td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -194,6 +214,7 @@ textarea{width:100%;resize:vertical;min-height:70px}
 .boxes b{display:block;font-family:var(--f-display);font-size:1.4rem;color:var(--ink);font-variant-numeric:tabular-nums}
 
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;z-index:20;max-width:calc(100% - 32px)}
+@media (max-width:640px){#toast{bottom:calc(80px + env(safe-area-inset-bottom,0px))}}
 </style>
 </head>
 <body>
@@ -213,7 +234,7 @@ textarea{width:100%;resize:vertical;min-height:70px}
     <button class="tab" role="tab" data-view="roadmap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19h4V9H4zM10 19h4V5h-4zM16 19h4v-7h-4z"/></svg>Lộ trình</button>
     <button class="tab" role="tab" data-view="lessons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h11a4 4 0 0 1 4 4v10H8a4 4 0 0 1-4-4z"/><path d="M8 9h7M8 13h5"/></svg>Bài học</button>
     <button class="tab" role="tab" data-view="shadow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h2M7 8v8M11 5v14M15 9v6M19 11v2"/></svg>Shadowing</button>
-    <button class="tab" role="tab" data-view="talk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/></svg>Hội thoại mẫu</button>
+    <button class="tab" role="tab" data-view="talk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="tl">Hội thoại mẫu</span><span class="ts">Hội thoại</span></button>
     <button class="tab" role="tab" data-view="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12a8 8 0 1 1-3-6.2"/><path d="M20 4v5h-5"/></svg>Ôn tập</button>
     <button class="tab" role="tab" data-view="guide"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5v.01"/></svg>Hướng dẫn</button>
   </div>
@@ -724,6 +745,72 @@ function scoreInto(id,inputEl,out){
   markActive();
 }
 
+/* ---------------- CÂU LỆNH NHẬP VAI CHO GEMINI / CHATGPT ---------------- */
+const AI_LEVELS={
+  beginner:{vi:"Mới bắt đầu",en:"beginner (A2). Use simple, common words and short sentences. Speak a little slower"},
+  intermediate:{vi:"Trung cấp",en:"intermediate (B1). Use natural everyday English"},
+  advanced:{vi:"Nâng cao",en:"advanced (B2-C1). Use fully natural, fast, casual English with idioms and slang"}
+};
+function aiRules(level){
+  return `You are my English speaking partner. I'm Vietnamese and my level is ${AI_LEVELS[level].en}. We're practicing out loud, so keep everything conversational.
+
+Rules for the whole session:
+1. Stay in character. Talk like a real American: casual, with contractions (I'm, gonna, wanna). Keep each reply to 1-2 short sentences, then ask me something so I keep talking.
+2. After each of my answers, if it could sound more natural, first say "Better:" followed by how a native speaker would say exactly what I meant. Then continue the conversation. If my answer was already natural, just say "Nice!" and continue.
+3. Don't give grammar lectures. Only explain if I say "explain". If I say "tiếng Việt", explain in Vietnamese.
+4. If I'm silent or stuck, give me two short example answers I could say.
+5. When I say "stop", end the role-play and give me: my 3 most common mistakes with corrections, 5 useful phrases from today, and a score out of 10 for fluency and for naturalness.`;
+}
+const AI_PROMPTS=[
+ {stage:1,t:"Luyện âm rút gọn",d:"gonna, wanna, gotta, lemme, kinda",task:`Today's activity: connected speech drill.
+Give me one everyday sentence at a time that uses gonna, wanna, gotta, lemme, kinda or dunno, said the way natives really say it. I'll repeat it back. Based on what you hear (or the transcript), tell me if I used the reduced form and didn't drop ending sounds like -s, -t, -d. Then give me the next sentence. Start now with the first sentence.`},
+ {stage:1,t:"Nghe nối âm",d:"AI nói nhanh, bạn nhắc lại",task:`Today's activity: listening for linked sounds.
+Say one natural sentence at normal native speed with lots of linking (like "pick it up", "turn it off", "what are you up to"). I'll say back exactly what I heard. Tell me which words I missed, then say it again slowly, then give me the next one. Start now.`},
+ {stage:2,t:"Đồng nghiệp sáng thứ Hai",d:"Small talk ở văn phòng",task:`Role-play: you're Mike, my friendly American coworker. It's Monday morning and we meet by the coffee machine. Chat about the weekend, work this week and lunch plans. Use natural reactions like "No way!", "That makes sense", "Tell me about it". You start.`},
+ {stage:2,t:"Làm quen ở bữa tiệc",d:"Mở chuyện, hỏi han, giữ câu chuyện",task:`Role-play: you're Jake, a laid-back guest at my friend Sarah's house party. We've never met. Introduce yourself, ask how I know Sarah, what I do and what I like. Push me to ask you questions back, and remind me if I forget. You start.`},
+ {stage:3,t:"Kế hoạch cuối tuần",d:"Dùng phrasal verbs tự nhiên",task:`Role-play: you're my friend Emma and we're planning this weekend together. Use lots of everyday phrasal verbs (hang out, figure out, end up, catch up, put off, come up with, look forward to, run into). Every time I use a stiff word where a phrasal verb would sound more natural, add it to your "Better:" line. You start.`},
+ {stage:3,t:"Kể chuyện bằng phrasal verbs",d:"Kể lại một ngày của bạn",task:`Activity: ask me to tell you about my day yesterday, one part at a time (morning, work, evening). After each part, retell my sentences using natural phrasal verbs, then ask a follow-up question. You start.`},
+ {stage:4,t:"Tranh luận nhẹ nhàng",d:"Đưa ý kiến, đồng ý, phản đối",task:`Role-play: a friendly debate. Topic: "Working from home is better than working at the office." You take the opposite side from me. Use phrases like "If you ask me", "I see where you're coming from, but", "That's a good point", "I'm on the fence". Encourage me to use them too. Ask me which side I'm on to start.`},
+ {stage:4,t:"Từ chối khéo",d:"Bạn bè rủ rê nhiều lần",task:`Role-play: you're my friend Chris and you keep inviting me to things this week (a late-night party, a 6am hike, helping you move). I'll politely decline or suggest another time. If my refusal sounds too direct or rude for an American, tell me in your "Better:" line. You start with the first invitation.`},
+ {stage:5,t:"Phỏng vấn xin việc",d:"Nhà tuyển dụng hỏi, bạn trả lời",task:`Role-play: you're a hiring manager at an international company and I'm applying for a job in my field (ask me which job first). Run a realistic 10-question interview: "Tell me about yourself", strengths, a difficult situation, why this company, and finally "Do you have any questions for me?". Be friendly but professional.`},
+ {stage:5,t:"Họp công việc",d:"Dời lịch, báo trước, chốt việc",task:`Role-play: you're my American manager, Sarah. We have a quick 1-on-1 meeting. I'm swamped and need to push a deadline. Use workplace phrases like "touch base", "loop in", "heads-up", "on the same page", "keep me posted", "wrap up". You start.`},
+ {stage:6,t:"Kể một kỷ niệm",d:"Kể chuyện có mở đầu, cao trào, kết",task:`Activity: storytelling coach. Ask me to tell you a memorable story (a trip, a funny moment or a mistake I made). Let me tell it in parts and react naturally ("No way!", "Then what happened?"). At the end, retell my whole story the way a native speaker would tell it at a dinner, so I can copy the style.`},
+ {stage:6,t:"Trò chuyện tự do mỗi ngày",d:"Thành ngữ, ngữ điệu, nói như bạn bè",task:`Role-play: you're my American friend Alex. We're catching up over coffee after a long time. Chat about anything: life, work, movies, food, plans. Naturally slip in common idioms (piece of cake, under the weather, call it a day, cost an arm and a leg) and explain one only if I ask. You start.`}
+];
+const AI_STAGES=["Tai & miệng","Cụm giao tiếp cốt lõi","Phrasal verbs","Bày tỏ & thương lượng","Công việc & tình huống thật","Tự nhiên hoàn toàn"];
+let aiLevel="intermediate";
+try{const l=localStorage.getItem("ntc-ailevel");if(l&&AI_LEVELS[l])aiLevel=l}catch(_){}
+const aiPromptText=i=>aiRules(aiLevel)+"\n\n"+AI_PROMPTS[i].task;
+function aiPromptsHtml(){
+  return `<div class="panel ai-prompts" style="display:grid;gap:14px">
+    <div style="display:grid;gap:6px">
+      <h3>Luyện nói với AI miễn phí</h3>
+      <p class="muted" style="max-width:68ch">Sao chép một câu lệnh, mở <b>Gemini</b> hoặc <b>ChatGPT</b>, dán vào rồi bật <b>chế độ nói (giọng nói)</b>. AI sẽ đóng vai, sửa câu của bạn bằng dòng “Better: …”. Nói <b>“stop”</b> để nhận nhận xét cuối buổi. Hai app này không tính vào hạn mức Claude.</p>
+    </div>
+    <div class="row">
+      <label class="lbl" for="ai-level">Trình độ</label>
+      <select id="ai-level" style="width:auto">${Object.entries(AI_LEVELS).map(([k,v])=>`<option value="${k}" ${k===aiLevel?"selected":""}>${v.vi}</option>`).join("")}</select>
+      <a class="btn" href="https://gemini.google.com/" target="_blank" rel="noopener">Mở Gemini</a>
+      <a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener">Mở ChatGPT</a>
+    </div>
+    <div class="ai-list">${AI_PROMPTS.map((p,i)=>`
+      <div class="ai-item">
+        <div style="min-width:0"><span class="lbl">Chặng ${p.stage} · ${esc(AI_STAGES[p.stage-1])}</span><b>${esc(p.t)}</b><span class="muted">${esc(p.d)}</span></div>
+        <button class="btn primary" data-copyprompt="${i}">Sao chép</button>
+        <details><summary>Xem câu lệnh</summary><textarea readonly id="ai-text-${i}" rows="8">${esc(aiPromptText(i))}</textarea></details>
+      </div>`).join("")}</div>
+  </div>`;
+}
+function copyPrompt(i){
+  const text=aiPromptText(i),ta=document.getElementById("ai-text-"+i);
+  const fallback=()=>{if(!ta)return;ta.closest("details").open=true;ta.focus();ta.select();toast("Đã chọn sẵn câu lệnh, bấm giữ rồi chọn Sao chép.",6000)};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>toast("Đã sao chép. Mở Gemini hoặc ChatGPT, dán vào và bật chế độ nói.",5000)).catch(fallback);
+  }else fallback();
+}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-copyprompt]");if(b)copyPrompt(+b.dataset.copyprompt)});
+document.addEventListener("change",e=>{if(e.target.id==="ai-level"){aiLevel=e.target.value;try{localStorage.setItem("ntc-ailevel",aiLevel)}catch(_){}renderTalk()}});
+
 /* ---------------- TALK (hội thoại mẫu, offline) ---------------- */
 let talk={sc:null,step:0,turns:[],busy:false,level:"",auto:true,hints:[],off:"",done:false,scores:[]};
 function renderTalk(){
@@ -755,7 +842,7 @@ function renderTalk(){
         <button class="btn" id="tk-hint">Xem câu mẫu</button>
       </div>
     </div>`:`<div class="flash"><h3>Hoàn thành tình huống · trung bình ${avg}%</h3><p class="muted">Làm lại để nói trôi chảy hơn, hoặc chọn tình huống khác.</p><div class="row"><button class="btn primary" id="tk-reset2">Làm lại</button></div></div>`}
-  </div>`:`<p class="muted">Chọn một tình huống ở trên để bắt đầu.</p>`}`;
+  </div>`:`<p class="muted">Chọn một tình huống ở trên để bắt đầu.</p>`}${aiPromptsHtml()}`;
   const c=$("#tk-chat");if(c)c.scrollTop=c.scrollHeight;
 }
 function startScene(id){
